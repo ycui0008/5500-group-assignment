@@ -1,0 +1,19 @@
+---
+title: "A2"
+author: "Group 10"
+date: "9/12/2021"
+output: 
+  bookdown::pdf_document2:
+    toc: yes
+    toc_depth: '2'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r read_data}
+bankruptcy <- readRDS(here::here("data/Bankruptcy.rds"))
+```
+
