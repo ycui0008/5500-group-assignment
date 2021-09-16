@@ -10,10 +10,89 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(visdat)
+library(simputation)
 ```
 
 
 ```{r read_data}
 bankruptcy <- readRDS(here::here("data/Bankruptcy.rds"))
 ```
+
+# Data description
+
+```{r}
+vis_miss(bankruptcy)
+```
+
+
+
+```{r}
+bankruptcy %>% 
+  dplyr::select_if(is.numeric) %>% 
+  GGally::ggpairs()
+```
+
+Outliers:
+
+credibiliy:
+
+```{r}
+summary(bankruptcy)
+```
+
+# Imputation
+
+```{r}
+impute_lm(bankruptcy, Liab ~ Assets) %>% 
+  impute_lm(Ebit ~ Assets) -> bankruptcy_imp
+```
+
+`bankruptcy_imp` is the data set after imputation.
+
+# PCA
+
+```{r}
+pcaout <- bankruptcy %>% 
+  mutate(Name = abbreviate(Name)) %>% 
+  column_to_rownames('Name') %>% 
+  dplyr::select_if(is.numeric) %>% 
+  select(Assets, CPI, FilingRate, GDP, HeadCityPop, MonthFiled, PrimeFiling, YearFiled) %>%
+  prcomp(scale. =TRUE)
+```
+
+```{r}
+summary(pcaout)
+```
+
+```{r}
+screeplot(pcaout, type = 'l')
+```
+
+
+```{r}
+biplot(pcaout, scale = 0)
+```
+
+outliers:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
