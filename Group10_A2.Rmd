@@ -49,7 +49,9 @@ summary(bankruptcy)
 impute_lm(bankruptcy, Liab ~ Assets) %>% 
   impute_lm(Ebit ~ Assets) %>%
   impute_knn(Sales ~ Assets + Ebit + Liab, pool = "univariate", k = 5) %>% 
-  separate(SICMajGroup, c("group_code", "group_name"), " ") %>% 
+  impute_knn(Employees ~ Assets + Ebit + Sales, pool = "univariate", k = 5) %>% 
+  # impute_lm(DaysIn ~ Assets) %>% 
+  separate(SICMajGroup, c("group_code", "group_name"), " ", extra = "merge") %>% 
   mutate(group_code = as.numeric(group_code))-> bankruptcy_imp
 
 bankruptcy_clean <- bankruptcy_imp %>% 
@@ -62,10 +64,11 @@ bankruptcy_clean <- bankruptcy_imp %>%
 # PCA
 
 ```{r}
-pcaout <- bankruptcy %>% 
+pcaout <- bankruptcy_clean %>% 
   mutate(Name = abbreviate(Name)) %>% 
   column_to_rownames('Name') %>% 
   dplyr::select_if(is.numeric) %>% 
+  select(-DaysIn, -EmplUnion, -HeadCourtCityToDE) %>% 
   # select(Assets, CPI, FilingRate, GDP, HeadCityPop, MonthFiled, PrimeFiling, YearFiled) %>%
   prcomp(scale. =TRUE)
 ```
