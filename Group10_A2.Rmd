@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(visdat)
 library(simputation)
-library(fastDummies)
+library(fastDummies) # does not work for multi-level factors?
 ```
 
 
@@ -23,11 +23,37 @@ bankruptcy <- readRDS(here::here("data/Bankruptcy.rds"))
 
 # Data description
 
-```{r}
+Data are collected on `r ncol(bankruptcy)` variables each representing different measures of status of `r nrow(bankruptcy)` bankrupt companies in the US. These are:
+
+* Name of the firm (`Name`)
+* Total assets (in millions of dollars) (`Assets`)
+* City where filing took place (`CityFiled`)
+* U.S CIP at the time of filing (`CPI`)
+* Length of bankruptcy process (`DaysIn`)
+* CityFiled, categorized as Wilmington (DE), New York (NY) or all other cities (OT) (`DENYOther`)
+* Earnings (operating income) at time of filing (in millions of dollars) (`Ebit`)
+* Number of employees before bankruptcy (`Employees`)
+* Number of union employees before bankruptcy (`EmplUnion`)
+* Total number of other bankrupcy filings in the year of this filing (`FilingRate`)
+* Short description of the event that ended the firm’s existence (`FirmEnd`)
+* Gross Domestic Product for the Quarter in which the case was filed (`GDP`)
+* The population of the firms headquarters city (`HeadCityPop`)
+* The distance in miles from the firms headquarters city to the city in which the case was filed (`HeadCourtCityToDE`)
+* The state in which firms headquarters is located (`HeadStAtFiling`)
+* Total amount of money owed (in millions of dollars) (`Liab`)
+* Categorical variable where numbers from 1 to 12 correspond to months from Jan to Dec (`MonthFiled`)
+* Prime rate of interest on the bankruptcy filing date (`PrimeFiling`)
+* Sales before bankruptcy (in dollars) (`Sales`)
+* Standard industrial clasification code (`SICMajGroup`)
+* Year bankruptcy was filed (`YearFiled`)
+
+Among these variables, `Assets`, `Ebit`, `GDP`, `Liab` and `Sales` are the measures of economic status of the companies. `CPI`, `PrimeFiling` and `CityFiled` describe the external environment of the companies. `FirmEnd` tells three different endings of the companies: merged with others, bankruptcy, and continuing the operations.
+
+```{r vismiss, }
 vis_miss(bankruptcy)
 ```
 
-
+the lowest rate of interest at which money may be borrowed commercially
 
 ```{r}
 bankruptcy %>% 
