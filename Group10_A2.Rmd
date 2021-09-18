@@ -9,7 +9,10 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.align = 'center')
 library(tidyverse)
 library(visdat)
 library(simputation)
@@ -50,45 +53,65 @@ Data are collected on `r ncol(bankruptcy)` variables each representing different
 * Standard industrial clasification code (`SICMajGroup`)
 * Year bankruptcy was filed (`YearFiled`)
 
-Among these variables, `Assets`, `Ebit`, `GDP`, `Liab` and `Sales` are the measures of economic status of the companies. `CPI`, `PrimeFiling` and `CityFiled` describe the external environment of the companies. `FirmEnd` tells three different endings of the companies: merged with others, bankruptcy, and continuing the operations.
+Among these variables, `Assets`, `Ebit`, `GDP`, `Liab`, `Employees` and `Sales` are the measures of the status of the companies. `CPI`, `PrimeFiling` and `CityFiled` describe the external environment of the companies. `FirmEnd` tells three different endings of the companies: merged with others, bankruptcy, and continuing the operations.
 
-```{r vismiss, }
+```{r vismiss, fig.cap = "Missing values in the data set"}
 vis_miss(bankruptcy)
 ```
 
-the lowest rate of interest at which money may be borrowed commercially
+Figure \ref(fig:vismiss) shows the missing values in the data set. The most missing values are in `EmplUnion`; fortunately, this variable is not important.
 
-```{r}
+# Data cleaning 
+
+```{r pairplot, fig.cap = "Overview of all numeric variables in the data set"}
 bankruptcy %>% 
   dplyr::select_if(is.numeric) %>% 
   GGally::ggpairs()
 ```
 
-Outliers:
+
+
+Figure \@ref(fig:pairplot) shows the relations between any two of the numeric variables in the data set. We can clearly see some outliers in Figure \@ref(fig:pairplot). In addition, we can tell some linear relationship between `Assets` and `Ebit`. For `Sales`, it is difficult to tell any clear relationship with any one of the other variables. We assume that the firms which have similar amount of assets, EBIT, and liability would have similar sales in same industry. Therefore, we use `impute_knn()` to impute missing values in `Sales`. Following same logic, we can impute missing values in `Employees` as well.
 
 credibiliy:
 
-```{r}
-summary(bankruptcy)
-```
-
-# Imputation
+## Imputation
 
 ```{r}
-impute_lm(bankruptcy, Liab ~ Assets) %>% 
-  impute_lm(Ebit ~ Assets) %>%
-  impute_knn(Sales ~ Assets + Ebit + Liab, pool = "univariate", k = 5) %>% 
-  impute_knn(Employees ~ Assets + Ebit + Sales, pool = "univariate", k = 5) %>% 
-  # impute_lm(DaysIn ~ Assets) %>% 
+# impute_lm(bankruptcy, Liab ~ Assets) %>%
+#   impute_lm(Ebit ~ Assets) %>%
+#   impute_knn(Sales ~ Assets + Ebit + Liab, pool = "univariate", k = 5) %>%
+#   impute_knn(Employees ~ Assets + Ebit + Sales, pool = "univariate", k = 5) %>%
+#   impute_lm(DaysIn ~ Assets) %>%
+
+bankruptcy %>% 
   separate(SICMajGroup, c("group_code", "group_name"), " ", extra = "merge") %>% 
   mutate(group_code = as.numeric(group_code))-> bankruptcy_imp
 
 bankruptcy_clean <- bankruptcy_imp %>% 
   mutate(group_code = group_code - min(bankruptcy_imp$group_code),
          group_code = as.factor(group_code))
+
+impute_lm(bankruptcy_clean, Liab ~ Assets) %>% 
+  impute_lm(Ebit ~ Assets) %>%
+  impute_knn(Sales ~ Assets + Ebit + Liab + group_code, pool = "univariate", k = 5) %>% 
+  impute_knn(Employees ~ Assets + Ebit + Sales + group_code, pool = "univariate", k = 5) -> bankruptcy_imp
 ```
 
-`bankruptcy_clean` is the data set after imputation.
+```
+impute_lm(bankruptcy_clean, Liab ~ Assets) %>% # impute `Liab`
+  impute_lm(Ebit ~ Assets) %>% # impute `Ebit`
+  impute_knn(Sales ~ Assets + Ebit + Liab + group_code, pool = "univariate", k = 5) %>% # impute `Sales`
+  impute_knn(Employees ~ Assets + Ebit + Sales + group_code, pool = "univariate", k = 5) # impute `Employees`
+  -> bankruptcy_imp
+```
+
+`bankruptcy_imp` is the data set after imputation. In Figure \@ref(fig:vismissimp), we can see that all important numeric variables have no missing values.
+
+```{r vismissimp, fig.cap = "Check missing values after imputation"}
+vis_miss(bankruptcy_imp)
+```
+
 
 # PCA
 
