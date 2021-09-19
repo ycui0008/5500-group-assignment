@@ -80,7 +80,7 @@ tibble(
     "Standard industrial clasification code",
     "Year bankruptcy was filed")) %>% 
   knitr::kable(caption = "Variable Description") %>% 
-  kableExtra::kable_paper(bootstrap_options = "striped", full_width = F)
+  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 
@@ -98,7 +98,7 @@ bankruptcy %>%
   filter(Employees == 1) %>% 
   dplyr::select(Name, Assets, Employees) %>% 
   knitr::kable(caption = "Suspicious Observations") %>% 
-  kableExtra::kable_paper(bootstrap_options = "striped", full_width = F)
+  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 The data set has some suspicious observations. Table \@ref(tab:credCheck) shows some companies which only have one employee having millions of assets. Therefore, the data set might not be so trustworthy. Further investigation is required.
@@ -174,7 +174,7 @@ faout <- fain %>%
 cor(faout$scores) %>% 
   as.tibble(rownames= NA) %>% 
   knitr::kable(caption = "Check correlation between factors") %>% 
-  kableExtra::kable_paper(bootstrap_options = "striped", full_width = F)
+  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 
@@ -203,7 +203,8 @@ Principal components analysis finds a small number of linear combinations of the
 pcaout <- bb %>% 
   mutate(Name = abbreviate(Name)) %>% 
   column_to_rownames("Name") %>%
-  select_if(is.numeric) %>% select(Ebit, CPI, FilingRate, GDP, HeadCityPop,Liab, PrimeFiling, Sales) %>%
+  select_if(is.numeric) %>% 
+  dplyr::select(Ebit, CPI, FilingRate, GDP, HeadCityPop,Liab, PrimeFiling, Sales) %>%
   prcomp(scale. =TRUE)
 
 
