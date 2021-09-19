@@ -1,5 +1,6 @@
 ---
 title: "Multidimensional Reduction Analysis for Bankrupt Companies"
+subtitle: Group 10
 author:
   - Yuheng Cui
   - Chenjie Gong
@@ -21,7 +22,7 @@ knitr::opts_chunk$set(echo = FALSE,
 library(tidyverse)
 library(visdat)
 library(simputation)
-library(fastDummies) # does not work for multi-level factors?
+library(fastDummies) 
 library(MASS)
 library(mclust)
 library(Rmixmod)
@@ -218,7 +219,7 @@ Principal components analysis finds a small number of linear combinations of the
 ```{r}
 pcaout <- bankruptcy_imp %>% 
   mutate(Name = abbreviate(Name)) %>% 
-  column_to_rownames("Name") %>%
+  # column_to_rownames("Name") %>%
   select_if(is.numeric) %>% 
   dplyr::select(Ebit,Assets, CPI, HeadCityPop, Liab, PrimeFiling, Sales) %>%
   prcomp(scale. =TRUE)
@@ -231,9 +232,7 @@ pcaout <- bankruptcy_imp %>%
 summary(pcaout)
 ```
 
-### Proportion of variance explained by the first five PCs together is 77.62%
-### Proportion of variance explained by the three PC alone is 15.5%
-### By Kaisers rule select 3 PCs 
+Proportion of variance explained by the first five PCs together is 77.62%. Proportion of variance explained by the three PC alone is 15.5%. By Kaisers rule select 3 PCs 
 
 ```{r screenplot, fig.cap="Screeplot of PCA"}
 
@@ -288,42 +287,40 @@ plot(Ebit ~Liab, bankruptcy)
 EBIT is an significant index to evaluated the company's operating efficiency. Sales reflect the company's transaction between other parties. Thus, the cluster analysis will focus on company's financial position. Figure \@ref(fig:outlier) shows the EBIT and liabilities of companies, most companies' EBIT are less than liabilities and even in negativewhich means they did not have ability to pay the debt which caused bankruptcy in the end. The company `First RepublicBank Corp` and `Texaco Inc.` have large amount of liabilities than other companies and for better clustering, we will consider them as outliers and remove them. 
 As variable `Sales` amounts are larger than other financial positions, we have to normalize them before calculating the distance.
 
-
-
 As variable `Sales` amounts are larger than other financial positions, we have to normalize them before calculating the distance.
 
 
-```{r}
+```{r tidydata}
 tidy <- bankruptcy_imp %>% 
   dplyr::select(-EmplUnion) %>%
 
   dplyr::select(Assets, Ebit, Liab, Sales, PrimeFiling) %>% 
   filter(Liab < 40000)
 
-m <- apply(tidy, 2, mean)
-s <- apply(tidy, 2, sd)
-z<- scale(tidy, m,s)
-```
-
-
-
-```{r multi}
-d<- z %>% #scale data
-dist(method = 'euclidean') #compute distance matrix
-hcl <- hclust(d,method='ward.D2')
 
 ```
 
 
-```{r}
+```{r gaussian}
 all <- mixmodCluster(tidy, 4:10)
 all
-
 
 ```
 
 As the data is multidimensional, we use Gaussian Mixture model tofit the data. 
-Comparing the BIC, we can find that clusters of 8 are the best cluster group numbers. Then, we are also using Ward method, average method, centroid method and complete method and use Average linkage has a relatively high level of agreement with Ward's method.
+Comparing the BIC, we can find that clusters of 8 are the best cluster group numbers.
+
+```{r multi}
+m <- apply(tidy, 2, mean)
+s <- apply(tidy, 2, sd)
+z<- scale(tidy, m,s)
+d<- z %>% #scale data
+dist(method = 'euclidean') #compute distance matrix
+hcl <- hclust(d,method='ward.D2')
+```
+
+
+Then, we are also using Ward method, average method, centroid method and complete method to check the rand index. The rand index of ward's method with average method is 0.15, with centroid method is 0.1 and with complete method is 0.29. Though, the rand index is low, complete method has a relatively high level of agreement with Ward's method.
 
 
 ```{r mul}
@@ -342,19 +339,30 @@ cutree(k = 8)
 ```
 
 
-```{r}
-aggregate(z, list(com_f_ward), mean)
+```{r rand}
+wardal <- adjustedRandIndex(com_f_ward,com_f_al)
+wardcm <- adjustedRandIndex(com_f_ward,com_f_cm)
+wardcl <- adjustedRandIndex(com_f_ward,com_f_cl)
 ```
+
+```{r aggre}
+aggregate(z, list(com_f_ward), mean) %>%
+  knitr::kable(caption = "Mean of each clusters") %>% 
+  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F, latex_options = "HOLD_position")
+```
+
+ Table \@ref(tab:aggre) shows the mean of each cluster, cluster 4 has the highest average assets and liabilities, however, their EBIT are not the best and prime rate of interest's average are negative. Cluster 3 has the highest average EBIT, but their average sales are low. Overview, the cluster can find that the bankruptcy companies always arise some issues in their financial position that caused their companies went into filling. 
 
 
 # Multidimensional Scaling
 
-For this part the focus was on findinf a 2D representation of the data that accurately depicts the distanse of the observations in the higher dimensions. The main concerns was how to combineboth the numeric and the categorical variables in the dataset when calculating the distance metric, along with which variables to select that provide a high goodness of fit measure for the multidimensional scaling providing at the same time that these subset of variables doesn't alter the structure of the observations in the higher dimensional space.
+For this part the focus was on finding a 2D representation of the data that accurately depicts the distance of the observations in the higher dimensions. The main concerns was how to combine both the numeric and the categorical variables in the dataset when calculating the distance metric, along with which variables to select that provide a high goodness of fit measure for the multidimensional scaling providing at the same time that these subset of variables doesn't alter the structure of the observations in the higher dimensional space.
 
 Furthermore, we were also curious to see if the clusters found in the previous section could
-also be identified in the 2D representation of the multidemsnsional scaling.
+also be identified in the 2D representation of the multidimensional scaling.
 
-Classical multidemsnsional scaling was used, as their was no intication from the initial exploratory analysis that the relationship between some observations was non-linear.
+Classical multidimensional scaling was used, as there was no indication from the initial exploratory analysis that the relationship between some observations was non-linear.
+
 
 
 ```{r}
@@ -374,7 +382,9 @@ bankruptcy_imp <- bankruptcy_imp %>%
   impute_lm(EmplUnion ~ (Employees + Sales + DENYOther) )
 ```
 
-The distance metric used in the analysis was the sum of the Euclidean distances between the numeric variables and the Jaccard distance between the non-numeric for each observation. To calculate the later, all character variables were transformded to dummy variables (0, 1).
+
+The distance metric used in the analysis was the sum of the Euclidean distances between the numeric variables and the Jaccard distance between the non-numeric variables for each observation. To calculate the latter, all character variables were transformed to dummy variables (0, 1).
+
 
 
 ```{r}
@@ -428,7 +438,7 @@ mdsout$GOF %>%
   kableExtra::kable_styling(latex_options = "HOLD_position")
 ```
 
-Table \@ref(tab:gof) suggests that selecting a subest of the numeric variables that represent the financial health status of the company alongside with the character variables, such as location and industry yields a respectable value for the metrics, indicating a trustworthy multidimensional scaling.
+Table \@ref(tab:gof) suggests that selecting a subset of the numeric variables that represent the financial health status of the company alongside with the character variables, such as location and industry yields a respectable value for the metrics, indicating a trustworthy multidimensional scaling.     
 
 ```{r mds, fig.cap="Multidimensional Scaling 2D representation"}
 
@@ -455,7 +465,7 @@ Figure \@ref(fig:mds) indicates that the result of the multidimensional scaling 
 
 
 
-
+\clearpage
 
 
 
