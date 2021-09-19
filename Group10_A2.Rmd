@@ -184,13 +184,15 @@ We use `varimax` rotation and `Bartlett` score methods for **Factor Analysis**. 
 faout
 ```
 
-According to the ***Factor Analysis*** output, `HeadCityPop` and `Employees` have very high value of `Uniquenesses` -- 95.9% of `HeadCityPop` cannot be explained by the ***Factor Analysis*** while 73.8% of `Employees` cannot be explained. 
-
 `Factor 1` has high loadings for `Assets` and `Liab`; it is a company's economies of scale factor with higher score associated with larger scale companies. 
 
 `Factor 2` has high loadings for `Sales`; it is sales factor with higher score associated with bigger sales. 
 
 `Factor 3` has high loadings for `PrimeFiling`; it is interest rate of borrowing factor with higher score associated with higher borrowing rate. 
+
+## Limitation of FA
+
+According to the ***Factor Analysis*** output, `HeadCityPop` and `Employees` have very high value of `Uniquenesses` -- 95.9% of `HeadCityPop` cannot be explained by the ***Factor Analysis*** while 73.8% of `Employees` cannot be explained. 
 
 # PCA
 
