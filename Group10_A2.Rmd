@@ -9,7 +9,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,
+knitr::opts_chunk$set(echo = FALSE,
                       message = FALSE,
                       warning = FALSE,
                       fig.align = 'center')
@@ -29,7 +29,7 @@ bankruptcy <- readRDS(here::here("data/Bankruptcy.rds"))
 
 # Data description
 
-Data are collected on `r ncol(bankruptcy)` variables each representing different measures of status of `r nrow(bankruptcy)` bankrupt companies in the US. These are:
+Data are collected on `r ncol(bankruptcy)` variables each representing different measures of status of `r nrow(bankruptcy)` bankrupt companies in the US. Table \@ref(tab:datadesc) has the detailed variable description.
 
 
 ```{r datadesc}
@@ -79,7 +79,7 @@ tibble(
     "Sales before bankruptcy (in dollars)",
     "Standard industrial clasification code",
     "Year bankruptcy was filed")) %>% 
-  knitr::kable(caption = ) %>% 
+  knitr::kable(caption = "Variable Description") %>% 
   kableExtra::kable_paper(bootstrap_options = "striped", full_width = F)
 ```
 
@@ -91,6 +91,17 @@ vis_miss(bankruptcy)
 ```
 
 Figure \ref(fig:vismiss) shows the missing values in the data set. The most missing values are in `EmplUnion`; fortunately, this variable is not important.
+
+
+```{r credCheck}
+bankruptcy %>% 
+  filter(Employees == 1) %>% 
+  dplyr::select(Name, Assets, Employees) %>% 
+  knitr::kable(caption = "Suspicious Observations") %>% 
+  kableExtra::kable_paper(bootstrap_options = "striped", full_width = F)
+```
+
+The data set has some suspicious observations. Table \@ref(tab:credCheck) shows some companies which only have one employee having millions of assets. Therefore, the data set might not be so trustworthy. Further investigation is required.
 
 # Data cleaning 
 
@@ -104,7 +115,6 @@ bankruptcy %>%
 
 Figure \@ref(fig:pairplot) shows the relations between any two of the numeric variables in the data set. We can clearly see some outliers in Figure \@ref(fig:pairplot). In addition, we can tell some linear relationship between `Assets` and `Ebit`. For `Sales`, it is difficult to tell any clear relationship with any one of the other variables. We assume that the firms which have similar amount of assets, EBIT, and liability would have similar sales in same industry. Therefore, we use `impute_knn()` to impute missing values in `Sales`. Following same logic, we can impute missing values in `Employees` as well.
 
-credibiliy:
 
 ## Imputation
 
@@ -143,13 +153,44 @@ impute_lm(bankruptcy_clean, Liab ~ Assets) %>% # impute `Liab`
 vis_miss(bankruptcy_imp)
 ```
 
+
+
+
+
 # Factor Analyasis
 
 ```{r}
-
+fain <- bankruptcy_imp %>% 
+  mutate(Name = abbreviate(Name)) %>% 
+  dplyr::select(Assets, CPI, Ebit, Employees, Liab, PrimeFiling, Sales, HeadCityPop) 
 ```
 
 
+```{r corCheck}
+faout <- fain %>%
+  factanal(factors = 3,
+           rotation = 'varimax',
+           scores = 'Bartlett')
+
+cor(faout$scores) %>% 
+  as.tibble(rownames= NA) %>% 
+  knitr::kable(caption = "Check correlation between factors") %>% 
+  kableExtra::kable_paper(bootstrap_options = "striped", full_width = F)
+```
+
+We use `varimax` rotation and `Bartlett` score methods for **Factor Analysis**. We tried different numbers of factors, and found 3 factors were the most reasonable. The correlation between factors are all very small (Table \@ref(tab:corCheck)).
+
+```{r}
+faout
+```
+
+According to the ***Factor Analysis*** output, `HeadCityPop` and `Employees` have very high value of `Uniquenesses` -- 95.9% of `HeadCityPop` cannot be explained by the ***Factor Analysis*** while 73.8% of `Employees` cannot be explained. 
+
+`Factor 1` has high loadings for `Assets` and `Liab`; it is a company's economies of scale factor with higher score associated with larger scale companies. 
+
+`Factor 2` has high loadings for `Sales`; it is sales factor with higher score associated with bigger sales. 
+
+`Factor 3` has high loadings for `PrimeFiling`; it is interest rate of borrowing factor with higher score associated with higher borrowing rate. 
 
 # PCA
 
