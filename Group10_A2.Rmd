@@ -169,7 +169,8 @@ fain <- bankruptcy_imp %>%
 faout <- fain %>%
   factanal(factors = 3,
            rotation = 'varimax',
-           scores = 'Bartlett')
+           scores = 'Bartlett',
+           lower = 0.01)
 
 cor(faout$scores) %>% 
   as.tibble(rownames= NA) %>% 
@@ -200,20 +201,14 @@ According to the ***Factor Analysis*** output, `HeadCityPop` and `Employees` hav
 Principal components analysis finds a small number of linear combinations of the orginal variables that explain a large proportion of overall variation in the data. Since the variables in the dataset under investigation are measured in different units we standardise the data by dividing by the standard deviation before conducting the analysis. By selecting two principal components we are able visualise the data using a biplot which is included below
 
 ```{r}
-pcaout <- bb %>% 
+pcaout <- bankruptcy_imp %>% 
   mutate(Name = abbreviate(Name)) %>% 
-  column_to_rownames("Name") %>%
+  # column_to_rownames("Name") %>%
   select_if(is.numeric) %>% 
-  dplyr::select(Ebit, CPI, FilingRate, GDP, HeadCityPop,Liab, PrimeFiling, Sales) %>%
+  dplyr::select(Ebit, CPI, HeadCityPop, Liab, PrimeFiling, Sales) %>%
   prcomp(scale. =TRUE)
 
 
-
-
-pca<- bb %>% 
-  mutate(Name = abbreviate(Name)) %>% 
-  column_to_rownames("Name") %>%
-  select_if(is.numeric)
 ```
 
 
