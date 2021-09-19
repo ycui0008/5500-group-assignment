@@ -194,32 +194,59 @@ faout
 
 According to the ***Factor Analysis*** output, `HeadCityPop` and `Employees` have very high value of `Uniquenesses` -- 95.9% of `HeadCityPop` cannot be explained by the ***Factor Analysis*** while 73.8% of `Employees` cannot be explained.
 
-# PCA
+
+# Principal Components Analysis and Biplot
+
+Principal components analysis finds a small number of linear combinations of the orginal variables that explain a large proportion of overall variation in the data. Since the variables in the dataset under investigation are measured in different units we standardise the data by dividing by the standard deviation before conducting the analysis. By selecting two principal components we are able visualise the data using a biplot which is included below
 
 ```{r}
-pcaout <- bankruptcy_clean %>% 
+pcaout <- bb %>% 
   mutate(Name = abbreviate(Name)) %>% 
-  column_to_rownames('Name') %>% 
-  dplyr::select_if(is.numeric) %>% 
-  select(-DaysIn, -EmplUnion, -HeadCourtCityToDE) %>% 
-  # select(Assets, CPI, FilingRate, GDP, HeadCityPop, MonthFiled, PrimeFiling, YearFiled) %>%
+  column_to_rownames("Name") %>%
+  select_if(is.numeric) %>% select(Ebit, CPI, FilingRate, GDP, HeadCityPop,Liab, PrimeFiling, Sales) %>%
   prcomp(scale. =TRUE)
+
+
+
+
+pca<- bb %>% 
+  mutate(Name = abbreviate(Name)) %>% 
+  column_to_rownames("Name") %>%
+  select_if(is.numeric)
 ```
+
 
 ```{r}
 summary(pcaout)
 ```
 
+### Proportion of variance explained by the first five PCs together is 52.16%
+### Proportion of variance explained by the second PC alone is 19.68%
+### By Kaisers rule select 2 PCs (variance and standard deviation greater than 1.)
+
 ```{r}
-screeplot(pcaout, type = 'l')
+screeplot(pcaout,type = 'b') +
+screeplot(pcaout,type = 'l')
+```
+
+The elbow appears at the second PC, therefore 2or 3 PCs should be used.
+ 
+
+```{r}
+p<- biplot(pcaout,scale=1,cex=0.3)
+
+p+geom_text(check_overlap = TRUE) +geom_text(size = 0.2) +geom_point() + geom_text(hjust = 0, nudge_x = 0.05)
 ```
 
 
-```{r}
-biplot(pcaout, scale = 0)
-```
+The biplot can be interpreted as follows. The first principal component is a measure of overall company situation since it is positively correlated with variables that indicate a company's bankruptcy, such as cpi, Ebit and GDP . Some values with low values of the first principal component are CDSI, CHVI and AWII. It's all pharmaceutical companies, and the response to the cpi numbers is not that big, because they're all essential elements of life
 
-outliers:
+The biplot also highlights that the B-UC and SthpCrp are outliers, particularly on the first principal component. The first principal component has a high weight of 0.33. Those two companies are NGO, so it makes sense that they may be outliers, because any economic index will not effect the NGO.
+
+
+# Limitations of the Analysis
+
+Any dimension reduction technique such as principal components analysis represents a loss of information. In this example 0.5216% of the overall variation is explained by the first two principal components and therefore accurately depicted in the biplot. Finally there is some concern that the outliers of B-UI lead to a misleading analysis. 
 
 
 
@@ -298,6 +325,7 @@ adjustedRandIndex(com_f_ward,com_f_cl)
 ```{r}
 aggregate(z, list(com_f_ward), mean)
 ```
+
 
 
 
