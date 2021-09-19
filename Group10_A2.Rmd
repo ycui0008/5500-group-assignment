@@ -1,11 +1,17 @@
 ---
-title: ""
-author: "Group 10"
+title: "Multidimensional Reduction Analysis for Bankrupt Companies"
+author:
+  - Yuheng Cui
+  - Chenjie Gong
+  - Peimin Lin
+  - Panagiotis Stylianos
 output: 
   bookdown::pdf_document2:
     toc: yes
     toc_depth: '2'
 ---
+
+\clearpage
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,
@@ -22,6 +28,7 @@ library(Rmixmod)
 library(DataExplorer) 
 library(tidygraph)
 library(ggpubr)
+library(naniar)
 ```
 
 
@@ -35,6 +42,7 @@ Data are collected on `r ncol(bankruptcy)` variables each representing different
 
 
 ```{r datadesc}
+
 tibble(
   Variable = c(
     "Name",
@@ -82,7 +90,7 @@ tibble(
     "Standard industrial clasification code",
     "Year bankruptcy was filed")) %>% 
   knitr::kable(caption = "Variable Description") %>% 
-  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F)
+  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F, latex_options = "HOLD_position")
 ```
 
 
@@ -100,14 +108,14 @@ bankruptcy %>%
   filter(Employees == 1) %>% 
   dplyr::select(Name, Assets, Employees) %>% 
   knitr::kable(caption = "Suspicious Observations") %>% 
-  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F)
+  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F,latex_options = "HOLD_position")
 ```
 
 The data set has some suspicious observations. Table \@ref(tab:credCheck) shows some companies which only have one employee having millions of assets. Therefore, the data set might not be so trustworthy. Further investigation is required.
 
 # Data cleaning 
 
-```{r pairplot, fig.cap = "Overview of all numeric variables in the data set"}
+```{r pairplot, fig.cap = "Overview of all numeric variables in the data set", fig.height=9}
 bankruptcy %>% 
   dplyr::select_if(is.numeric) %>% 
   GGally::ggpairs()
@@ -182,7 +190,7 @@ faout <- fain %>%
 cor(faout$scores) %>% 
   as.tibble(rownames= NA) %>% 
   knitr::kable(caption = "Check correlation between factors") %>% 
-  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F)
+  kableExtra::kable_styling(bootstrap_options = "striped", full_width = F, latex_options = "HOLD_position")
 ```
 
 
@@ -227,15 +235,15 @@ summary(pcaout)
 ### Proportion of variance explained by the three PC alone is 15.5%
 ### By Kaisers rule select 3 PCs 
 
-```{r screenplot}
+```{r screenplot, fig.cap="Screeplot of PCA"}
 
 screeplot(pcaout,type = 'l')
 ```
 
-The elbow appears at the three PC, therefore 3 or 4 PCs should be used.\@ref(fig:screeplot))
+The elbow appears at the three PC, therefore 3 or 4 PCs should be used. Figure \@ref(fig:screeplot))
  
 
-```{r biplot}
+```{r biplot, fig.cap="Biplot produced by PCA"}
 p<- biplot(pcaout,scale=0,cex=0.3)
 
 #p+geom_text(check_overlap = TRUE) +geom_text(size = 0.2) +geom_point() + geom_text(hjust = 0, nudge_x = 0.05)
@@ -246,7 +254,7 @@ The biplot \@ref(fig:biplot)) can be interpreted as follows. The first principal
 
 The biplot also highlights that the B-UC and SthpCrp are outliers, particularly on the first principal component. The first principal component has a high weight of 0.33. Texaco Corporation Texaco Corporation is one of the largest oil companies in the United States and an international oil multinational company with more than 120 subsidiaries and branches. It explores oil in 32 countries, extracts oil in 18 countries, and sells in more than 130 countries. and FRBC is a bank. So these two companies are resource-based companies and banks, both of which are very competitive, so their data may not be very reliable and cannot help us analyze.
 
-```{r removebiplot}
+```{r removebiplot, fig.cap="Biplot without Outliers"}
 pcaoutre <- bankruptcy_imp %>%
   filter(Name!= "First RepublicBank Corp") %>%
   filter(Name!= "Texaco Inc.") %>%
@@ -268,15 +276,19 @@ Any dimension reduction technique such as principal components analysis represen
 
 # Cluster
 
-Why does a company go bankrupt? The biggest reason will be related to their financial position. According to the data, the company's  relevant information are Assets, EBIT, Liabilities and Sales. For Assets is a company owned and can provide future economic benefit. Liabilities represent money owed for other parties.
+Why does a company go bankrupt? The biggest reason will be related to their financial position. According to the data, the company's relevant information are Assets, EBIT, Liabilities and Sales. For Assets is a company owned and can provide future economic benefit. Liabilities represent money owed for other parties.
 
-EBIT is an significant index to evaluated the company's operating efficiency. Sales reflect the company's transaction between other parties. Thus, the cluster analysis will focus on company's financial position. Figure \@ref(fig:outlier) shows the EBIT and liabilities of companies,  most companies' EBIT are less than liabilities and even in negative which means they did not have ability to pay the debt which caused bankruptcy in the end. There is one company have large amount of liabilities than other companies and for better clustering, we will consider it as an outlier and not use in cluster analysis. 
- 
+
 
 ```{r outlier, fig.cap="Overview companies financial positions"}
 plot(Ebit ~Liab, bankruptcy)
 
 ```
+
+EBIT is an significant index to evaluated the company's operating efficiency. Sales reflect the company's transaction between other parties. Thus, the cluster analysis will focus on company's financial position. Figure \@ref(fig:outlier) shows the EBIT and liabilities of companies, most companies' EBIT are less than liabilities and even in negativewhich means they did not have ability to pay the debt which caused bankruptcy in the end. The company `First RepublicBank Corp` and `Texaco Inc.` have large amount of liabilities than other companies and for better clustering, we will consider them as outliers and remove them. 
+As variable `Sales` amounts are larger than other financial positions, we have to normalize them before calculating the distance.
+
+
 
 As variable `Sales` amounts are larger than other financial positions, we have to normalize them before calculating the distance.
 
@@ -310,30 +322,22 @@ all
 
 ```
 
-Comparing the BIC, we can find that clusters of 5 are the best cluster group numbers. Then, we are using Ward method, average method, centroid method and complete method and use Average linkage has a relatively high level of agreement with Ward's method.
+As the data is multidimensional, we use Gaussian Mixture model tofit the data. 
+Comparing the BIC, we can find that clusters of 8 are the best cluster group numbers. Then, we are also using Ward method, average method, centroid method and complete method and use Average linkage has a relatively high level of agreement with Ward's method.
 
 
 ```{r mul}
 
-com_f_ward<- cutree(hcl,k = 7)
+com_f_ward<- cutree(hcl,k = 8)
 
 com_f_al <- hclust(d,method='average')%>%
-cutree(k = 7)
+cutree(k = 8)
 
 com_f_cm <- hclust(d,method='centroid')%>%
-cutree(k = 7)
+cutree(k = 8)
 
 com_f_cl <- hclust(d,method='complete')%>%
-cutree(k = 7)
-
-```
-
-
-```{r rand}
-
-adjustedRandIndex(com_f_ward,com_f_al)
-adjustedRandIndex(com_f_ward,com_f_cm)
-adjustedRandIndex(com_f_ward,com_f_cl)
+cutree(k = 8)
 
 ```
 
@@ -342,6 +346,110 @@ adjustedRandIndex(com_f_ward,com_f_cl)
 aggregate(z, list(com_f_ward), mean)
 ```
 
+
+# Multidimensional Scaling
+
+For this part the focus was on findinf a 2D representation of the data that accurately depicts the distanse of the observations in the higher dimensions. The main concerns was how to combineboth the numeric and the categorical variables in the dataset when calculating the distance metric, along with which variables to select that provide a high goodness of fit measure for the multidimensional scaling providing at the same time that these subset of variables doesn't alter the structure of the observations in the higher dimensional space.
+
+Furthermore, we were also curious to see if the clusters found in the previous section could
+also be identified in the 2D representation of the multidemsnsional scaling.
+
+Classical multidemsnsional scaling was used, as their was no intication from the initial exploratory analysis that the relationship between some observations was non-linear.
+
+
+```{r}
+bankruptcy_imp <- bankruptcy_imp %>%   # add cluster groups to the dataset
+  filter(Liab < 40000) %>% 
+  mutate(
+    cluster_group = as.factor(com_f_cl)
+  )
+
+# some further imputations
+
+bankruptcy_imp$DaysIn <- impute_mean(bankruptcy_imp$DaysIn) 
+bankruptcy_imp$HeadCourtCityToDE <- impute_mean(bankruptcy_imp$HeadCourtCityToDE)
+
+bankruptcy_imp <- bankruptcy_imp %>%
+  mutate(EmplUnion = as.double(EmplUnion)) %>% 
+  impute_lm(EmplUnion ~ (Employees + Sales + DENYOther) )
+```
+
+The distance metric used in the analysis was the sum of the Euclidean distances between the numeric variables and the Jaccard distance between the non-numeric for each observation. To calculate the later, all character variables were transformded to dummy variables (0, 1).
+
+
+```{r}
+bank_cat <- bankruptcy_imp %>% 
+  filter(Liab < 40000) %>%  
+  select_if(is.character)
+
+# creating dummy variables
+
+bank_cat <- dummy_cols(bank_cat, select_columns = 'CityFiled') 
+bank_cat <- dummy_cols(bank_cat, select_columns = 'DENYOther')
+bank_cat <- dummy_cols(bank_cat, select_columns = 'HeadStAtFiling')
+bank_cat <- dummy_cols(bank_cat, select_columns = 'group_name')
+bank_cat <- dummy_cols(bank_cat, select_columns = 'FirmEnd')
+
+# distance of binary dummy variables
+
+bank_cat %>% 
+  select_if(is.numeric) %>% #Only metric data
+  scale() %>% 
+  dist(method = "binary")->delta #Distance
+
+# distance of numeric variables
+
+bankruptcy_imp %>% 
+  filter(Liab < 40000) %>% 
+  select_if(is.numeric)%>% #Only metric data
+  dplyr::select(Assets, Ebit, Liab, Sales, PrimeFiling) %>% 
+  scale%>% #Standardise
+  dist()->delta2 #Distance
+
+# sum of distances
+
+both_delta <- delta + delta2
+```
+
+```{r gof}
+bankruptcy_imp %>% 
+  filter(Liab < 40000) %>% 
+  pull(Name)%>% 
+  abbreviate()-> 
+  attributes(both_delta)$Labels 
+
+
+
+mdsout<-cmdscale(both_delta, eig=TRUE)
+ 
+
+mdsout$GOF %>% 
+  knitr::kable(caption = "Goodnes of Fit Measures", col.names = "Value") %>% 
+  kableExtra::kable_styling(latex_options = "HOLD_position")
+```
+
+Table \@ref(tab:gof) suggests that selecting a subest of the numeric variables that represent the financial health status of the company alongside with the character variables, such as location and industry yields a respectable value for the metrics, indicating a trustworthy multidimensional scaling.
+
+```{r mds, fig.cap="Multidimensional Scaling 2D representation"}
+
+mdsout$points%>%
+  as.data.frame()%>%
+  tibble::rownames_to_column(var = 'BankName')->df
+
+
+df<-add_column(df,Manufacturer=bankruptcy_imp %>% filter(Liab < 40000) %>% dplyr::select(cluster_group)) 
+
+ggplot(df ,aes(x=V1,y=V2,col= Manufacturer$cluster_group, label=`BankName`)) +
+  geom_text(size=2) +
+  theme_classic() +
+  labs(
+    color = "Cluster Group",
+    title = "MDS"
+  )
+
+```
+
+Figure \@ref(fig:mds) indicates that the result of the multidimensional scaling is consistent with the clustering results, as the 2D representation of the companies follows a clear structure with easily identifiable clusters, especially for those with a lot of observations.
 
 
 
@@ -364,7 +472,7 @@ In the above plot we see that there are no as such obvious outliers. Thus, there
  Also, an observation regarding the data is that, most of the variables showing histogram are **left Skewed** this is because the mean is greater than the median. In this case because skewed-right or left data have a few large values that drive the mean upward but do not affect where the exact middle of the data is (that is, the median).
  
 ```{r}
-skimr::skim(bankruptcy)
+summary(bankruptcy)
 ```
 
 
