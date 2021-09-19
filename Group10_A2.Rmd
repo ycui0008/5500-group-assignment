@@ -1,7 +1,6 @@
 ---
-title: "A2"
+title: ""
 author: "Group 10"
-date: "9/12/2021"
 output: 
   bookdown::pdf_document2:
     toc: yes
@@ -90,7 +89,7 @@ Among these variables, `Assets`, `Ebit`, `GDP`, `Liab`, `Employees` and `Sales` 
 vis_miss(bankruptcy)
 ```
 
-Figure \ref(fig:vismiss) shows the missing values in the data set. The most missing values are in `EmplUnion`; fortunately, this variable is not important.
+Figure \@ref(fig:vismiss) shows the missing values in the data set. The most missing values are in `EmplUnion`; fortunately, this variable is not important.
 
 
 ```{r credCheck}
@@ -139,11 +138,16 @@ impute_lm(bankruptcy_clean, Liab ~ Assets) %>%
 ```
 
 ```
-impute_lm(bankruptcy_clean, Liab ~ Assets) %>% # impute `Liab`
+bankruptcy_imp <- impute_lm(bankruptcy_clean, Liab ~ Assets) %>% # impute `Liab`
+
   impute_lm(Ebit ~ Assets) %>% # impute `Ebit`
-  impute_knn(Sales ~ Assets + Ebit + Liab + group_code, pool = "univariate", k = 5) %>% # impute `Sales`
-  impute_knn(Employees ~ Assets + Ebit + Sales + group_code, pool = "univariate", k = 5) # impute `Employees`
-  -> bankruptcy_imp
+  
+  impute_knn(Sales ~ Assets + Ebit + Liab + group_code,
+  pool = "univariate", k = 5) %>% # impute `Sales`
+  
+  impute_knn(Employees ~ Assets + Ebit + Sales + group_code,
+  pool = "univariate", k = 5) # impute `Employees`
+  
 ```
 
 `bankruptcy_imp` is the data set after imputation. In Figure \@ref(fig:vismissimp), we can see that all important numeric variables have no missing values.
@@ -286,7 +290,7 @@ hcl <- hclust(d,method='ward.D2')
 ```{r}
 all <- mixmodCluster(tidy, 4:10)
 all
-summary(all)
+
 
 ```
 
