@@ -112,8 +112,7 @@ bankruptcy %>%
 ```
 
 
-
-Figure \@ref(fig:pairplot) shows the relations between any two of the numeric variables in the data set. We can clearly see some outliers in Figure \@ref(fig:pairplot). In addition, we can tell some linear relationship between `Assets` and `Ebit`. For `Sales`, it is difficult to tell any clear relationship with any one of the other variables. We assume that the firms which have similar amount of assets, EBIT, and liability would have similar sales in same industry. Therefore, we use `impute_knn()` to impute missing values in `Sales`. Following same logic, we can impute missing values in `Employees` as well.
+Figure \@ref(fig:pairplot) shows the relations between any two of the numeric variables in the data set. We can clearly see some outliers in Figure \@ref(fig:pairplot). In addition, we can tell some linear relationship between `Assets` and `Ebit`. For `Sales`, it is difficult to tell any clear relationship with any one of the other variables. We assume that the firms which have similar amounts of assets, EBIT, and liability would have similar sales in the same industry. Therefore, we use `impute_knn()` to impute missing values in `Sales`. Following the same logic, we can impute missing values in `Employees` as well.
 
 
 ## Imputation
@@ -178,21 +177,22 @@ cor(faout$scores) %>%
   kableExtra::kable_paper(bootstrap_options = "striped", full_width = F)
 ```
 
+
 We use `varimax` rotation and `Bartlett` score methods for **Factor Analysis**. We tried different numbers of factors, and found 3 factors were the most reasonable. The correlation between factors are all very small (Table \@ref(tab:corCheck)).
+
 
 ```{r}
 faout
 ```
 
-`Factor 1` has high loadings for `Assets` and `Liab`; it is a company's economies of scale factor with higher score associated with larger scale companies. 
-
-`Factor 2` has high loadings for `Sales`; it is sales factor with higher score associated with bigger sales. 
-
-`Factor 3` has high loadings for `PrimeFiling`; it is interest rate of borrowing factor with higher score associated with higher borrowing rate. 
+`Factor 1` has high loadings for `Assets` and `Liab`; it is a company's economies of scale factor with higher scores associated with larger scale companies.
+`Factor 2` has high loadings for `Sales`; it is a sales factor with higher scores associated with bigger sales.
+`Factor 3` has high loadings for `PrimeFiling`; it is the interest rate of borrowing factor with higher score associated with higher borrowing rate.
+ 
 
 ## Limitation of FA
 
-According to the ***Factor Analysis*** output, `HeadCityPop` and `Employees` have very high value of `Uniquenesses` -- 95.9% of `HeadCityPop` cannot be explained by the ***Factor Analysis*** while 73.8% of `Employees` cannot be explained. 
+According to the ***Factor Analysis*** output, `HeadCityPop` and `Employees` have very high value of `Uniquenesses` -- 95.9% of `HeadCityPop` cannot be explained by the ***Factor Analysis*** while 73.8% of `Employees` cannot be explained.
 
 # PCA
 
@@ -225,14 +225,18 @@ outliers:
 
 # Cluster
 
-Why a company fo bankrupt? The most reason will related to their financial position. Accroding to the data, we have company's  relevant information are Assets, EBIT, Liabilities and Sales. For Assets is a company owns and can provide future economic benefit. Liabilities represent money owed for other parties.
-EBIT is an significant index to evaluated the company's operating efficiency. Sales reflect the company's transaction between other parties. Thus, the cluster analysis will focus on company's financial position. Figure \@ref(fig:outlier) shows the EBIT and liabilities of companies,  most companies' EBIT are less than liabilities and even in negative which means they did not have ability to pay the debt which casued bankrupt at the end. There is one company have large amount of liabilities than other companies and for better clustering, we will consider it as an outlier and not use in cluster analysis.  
+Why does a company go bankrupt? The biggest reason will be related to their financial position. According to the data, the company's  relevant information are Assets, EBIT, Liabilities and Sales. For Assets is a company owned and can provide future economic benefit. Liabilities represent money owed for other parties.
+
+EBIT is an significant index to evaluated the company's operating efficiency. Sales reflect the company's transaction between other parties. Thus, the cluster analysis will focus on company's financial position. Figure \@ref(fig:outlier) shows the EBIT and liabilities of companies,  most companies' EBIT are less than liabilities and even in negative which means they did not have ability to pay the debt which caused bankruptcy in the end. There is one company have large amount of liabilities than other companies and for better clustering, we will consider it as an outlier and not use in cluster analysis. 
+ 
 
 ```{r outlier, fig.cap="Overview companies financial positions"}
 plot(Ebit ~Liab, bankruptcy)
 
 ```
-As variable `Sales` amount are larger than other financial positions, we have to normalize them before calculate the distance.
+
+As variable `Sales` amounts are larger than other financial positions, we have to normalize them before calculating the distance.
+
 
 ```{r}
 tidy <- bankruptcy_imp %>% 
@@ -262,11 +266,11 @@ all
 summary(all)
 
 ```
-Comparing the BIC, we can found that cluster of 5 is the best cluster group numbers. Then, we are using Ward method, average method, centroid method and complete method and use
-Average linkage has a relatively high level of agreement with
-Ward's method.
 
-```{r multi}
+Comparing the BIC, we can find that clusters of 5 are the best cluster group numbers. Then, we are using Ward method, average method, centroid method and complete method and use Average linkage has a relatively high level of agreement with Ward's method.
+
+
+```{r mul}
 
 com_f_ward<- cutree(hcl,k = 7)
 
