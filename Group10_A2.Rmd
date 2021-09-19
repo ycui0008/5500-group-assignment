@@ -19,6 +19,9 @@ library(fastDummies) # does not work for multi-level factors?
 library(MASS)
 library(mclust)
 library(Rmixmod)
+library(DataExplorer) 
+library(tidygraph)
+library(ggpubr)
 ```
 
 
@@ -86,7 +89,7 @@ tibble(
 Among these variables, `Assets`, `Ebit`, `GDP`, `Liab`, `Employees` and `Sales` are the measures of the status of the companies. `CPI`, `PrimeFiling` and `CityFiled` describe the external environment of the companies. `FirmEnd` tells three different endings of the companies: merged with others, bankruptcy, and continuing the operations.
 
 ```{r vismiss, fig.cap = "Missing values in the data set"}
-vis_miss(bankruptcy)
+plot_missing(bankruptcy)
 ```
 
 Figure \@ref(fig:vismiss) shows the missing values in the data set. The most missing values are in `EmplUnion`; fortunately, this variable is not important.
@@ -153,7 +156,7 @@ bankruptcy_imp <- impute_lm(bankruptcy_clean, Liab ~ Assets) %>% # impute `Liab`
 `bankruptcy_imp` is the data set after imputation. In Figure \@ref(fig:vismissimp), we can see that all important numeric variables have no missing values.
 
 ```{r vismissimp, fig.cap = "Check missing values after imputation"}
-vis_miss(bankruptcy_imp)
+plot_missing(bankruptcy)
 ```
 
 
@@ -207,9 +210,9 @@ Principal components analysis finds a small number of linear combinations of the
 ```{r}
 pcaout <- bankruptcy_imp %>% 
   mutate(Name = abbreviate(Name)) %>% 
-  # column_to_rownames("Name") %>%
+  column_to_rownames("Name") %>%
   select_if(is.numeric) %>% 
-  dplyr::select(Ebit, CPI, HeadCityPop, Liab, PrimeFiling, Sales) %>%
+  dplyr::select(Ebit,Assets, CPI, HeadCityPop, Liab, PrimeFiling, Sales) %>%
   prcomp(scale. =TRUE)
 
 
@@ -220,33 +223,46 @@ pcaout <- bankruptcy_imp %>%
 summary(pcaout)
 ```
 
-### Proportion of variance explained by the first five PCs together is 52.16%
-### Proportion of variance explained by the second PC alone is 19.68%
-### By Kaisers rule select 2 PCs (variance and standard deviation greater than 1.)
+### Proportion of variance explained by the first five PCs together is 77.62%
+### Proportion of variance explained by the three PC alone is 15.5%
+### By Kaisers rule select 3 PCs 
 
-```{r}
-screeplot(pcaout,type = 'b') +
+```{r screenplot}
+
 screeplot(pcaout,type = 'l')
 ```
 
-The elbow appears at the second PC, therefore 2or 3 PCs should be used.
+The elbow appears at the three PC, therefore 3 or 4 PCs should be used.\@ref(fig:screeplot))
  
 
-```{r}
-p<- biplot(pcaout,scale=1,cex=0.3)
+```{r biplot}
+p<- biplot(pcaout,scale=0,cex=0.3)
 
-p+geom_text(check_overlap = TRUE) +geom_text(size = 0.2) +geom_point() + geom_text(hjust = 0, nudge_x = 0.05)
+#p+geom_text(check_overlap = TRUE) +geom_text(size = 0.2) +geom_point() + geom_text(hjust = 0, nudge_x = 0.05)
 ```
 
 
-The biplot can be interpreted as follows. The first principal component is a measure of overall company situation since it is positively correlated with variables that indicate a company's bankruptcy, such as cpi, Ebit and GDP . Some values with low values of the first principal component are CDSI, CHVI and AWII. It's all pharmaceutical companies, and the response to the cpi numbers is not that big, because they're all essential elements of life
+The biplot \@ref(fig:biplot)) can be interpreted as follows. The first principal component is a measure of overall company situation since it is positively correlated with variables that indicate a company's bankruptcy, such as cpi, Ebit and GDP . Some values with low values of the first principal component are CDSI, CHVI and AWII. It's all pharmaceutical companies, and the response to the cpi numbers is not that big, because they're all essential elements of life
 
-The biplot also highlights that the B-UC and SthpCrp are outliers, particularly on the first principal component. The first principal component has a high weight of 0.33. Those two companies are NGO, so it makes sense that they may be outliers, because any economic index will not effect the NGO.
+The biplot also highlights that the B-UC and SthpCrp are outliers, particularly on the first principal component. The first principal component has a high weight of 0.33. Texaco Corporation Texaco Corporation is one of the largest oil companies in the United States and an international oil multinational company with more than 120 subsidiaries and branches. It explores oil in 32 countries, extracts oil in 18 countries, and sells in more than 130 countries. and FRBC is a bank. So these two companies are resource-based companies and banks, both of which are very competitive, so their data may not be very reliable and cannot help us analyze.
 
+```{r removebiplot}
+pcaoutre <- bankruptcy_imp %>%
+  filter(Name!= "First RepublicBank Corp") %>%
+  filter(Name!= "Texaco Inc.") %>%
+  mutate(Name = abbreviate(Name)) %>% 
+  column_to_rownames("Name") %>%
+ select_if(is.numeric) %>% 
+  dplyr::select(Assets,Ebit, CPI, HeadCityPop, Liab, PrimeFiling, Sales) %>%
+  prcomp(scale. =TRUE)
+ p1<- biplot(pcaoutre,scale=0,cex=0.3) 
+
+```
+\@ref(fig:removebiplot)) From this plot we can more viivd to see the result, because we remove these two outliers, which are First RepublicBank Corp and Texaco Inc.  and we can see primeFliling  has longest line, which means this factor has biggest influence with company.   and  Liabs and Sales are the same way, and the CPI is Completely opposite direction.
 
 # Limitations of the Analysis
 
-Any dimension reduction technique such as principal components analysis represents a loss of information. In this example 0.5216% of the overall variation is explained by the first two principal components and therefore accurately depicted in the biplot. Finally there is some concern that the outliers of B-UI lead to a misleading analysis. 
+Any dimension reduction technique such as principal components analysis represents a loss of information. In this example 0.7762 of the overall variation is explained by the first two principal components and therefore accurately depicted in the biplot. Finally there is some concern that the outliers of FRBC lead to a misleading analysis. 
 
 
 
@@ -268,7 +284,7 @@ As variable `Sales` amounts are larger than other financial positions, we have t
 ```{r}
 tidy <- bankruptcy_imp %>% 
   dplyr::select(-EmplUnion) %>%
-  na.omit()%>%
+
   dplyr::select(Assets, Ebit, Liab, Sales, PrimeFiling) %>% 
   filter(Liab < 40000)
 
@@ -337,6 +353,28 @@ aggregate(z, list(com_f_ward), mean)
 
 
 
+# APPENDIX
+
+```{r hist, echo=FALSE}
+plot_histogram(bankruptcy)
+```
+
+In the above plot we see that there are no as such obvious outliers. Thus, there is no need to cap outliers from this data set. 
+
+ Also, an observation regarding the data is that, most of the variables showing histogram are **left Skewed** this is because the mean is greater than the median. In this case because skewed-right or left data have a few large values that drive the mean upward but do not affect where the exact middle of the data is (that is, the median).
+ 
+```{r}
+skimr::skim(bankruptcy)
+```
+
+
+- Skimming function is use to check the data quality. It gives an overview of the data frame including number of rows and column, column types and if data frame is grouped. Initially we have:
+
+1. **Data Summary**: There are **436** number of rows and **21** number of columns.
+
+2. **Column type frequency**: In this data there total three types of variable viz. **Character**, **Interger**, and **Numeric**. The maximum missing values are seen in **NUmeric**
+
+3. **Central tendency for all the variables**: The central tendency provides us with the information of **Mean, Standard deviation, Percentile, and Range.** 
 
 
 
